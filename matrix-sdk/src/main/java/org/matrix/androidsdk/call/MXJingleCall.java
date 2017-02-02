@@ -21,7 +21,6 @@ import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.text.TextUtils;
-import org.matrix.androidsdk.util.Log;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -32,6 +31,7 @@ import com.google.gson.JsonObject;
 
 import org.matrix.androidsdk.MXSession;
 import org.matrix.androidsdk.rest.model.Event;
+import org.matrix.androidsdk.util.Log;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
 import org.webrtc.DataChannel;
@@ -945,7 +945,11 @@ public class MXJingleCall extends MXCall {
                                     createLocalStream();
 
                                     if (null != callInviteParams) {
-                                        dispatchOnStateDidChange(CALL_STATE_RINGING);
+                                        if(!mIsIncoming){
+                                            dispatchOnStateDidChange(CALL_STATE_RINGING);
+                                        } else {
+                                            answer();
+                                        }
                                         setRemoteDescription(callInviteParams);
                                     }
                                 }
@@ -1001,7 +1005,11 @@ public class MXJingleCall extends MXCall {
                         createLocalStream();
 
                         if (null != callInviteParams) {
-                            dispatchOnStateDidChange(CALL_STATE_RINGING);
+                            if(!mIsIncoming){
+                                dispatchOnStateDidChange(CALL_STATE_RINGING);
+                            } else {
+                                answer();
+                            }
                             setRemoteDescription(callInviteParams);
                         }
                     }
@@ -1176,6 +1184,12 @@ public class MXJingleCall extends MXCall {
                 JsonElement sdp = offer.get("sdp");
                 String sdpValue = sdp.getAsString();
                 setIsVideo(sdpValue.contains("m=video"));
+                mUIThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        dispatchOnStateDidChange(CALL_STATE_RINGING);
+                    }
+                });
             } catch (Exception e) {
                 Log.e(LOG_TAG, "## prepareIncomingCall(): Exception Msg=" + e.getMessage());
             }
@@ -1252,35 +1266,6 @@ public class MXJingleCall extends MXCall {
                             dispatchOnCallError(CALL_ERROR_CAMERA_INIT_FAILED);
                         }
                     }, aDescription);
-                }
-            });
-        }
-    }
-
-    /**
-     * The other call member hangs up the call.
-     * @param event the event
-     * @param hangUpReasonId hang up reason
-     */
-    private void onCallHangup(final Event event, final int hangUpReasonId) {
-        Log.d(LOG_TAG, "## onCallHangup(): call state=" + getCallState());
-        String state = getCallState();
-
-        if (!CALL_STATE_CREATED.equals(state) && (null != mPeerConnection)) {
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    terminate(hangUpReasonId);
-                }
-            });
-        } else if(CALL_STATE_WAIT_LOCAL_MEDIA.equals(state) && isVideo()){
-            // specific case fixing: a video call hung up by the calling side
-            // when the callee is still displaying the InComingCallActivity dialog.
-            // If terminate() was not called, the dialog was never dismissed.
-            mUIThreadHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    terminate(hangUpReasonId);
                 }
             });
         }
@@ -1368,7 +1353,12 @@ public class MXJingleCall extends MXCall {
                     JsonArray candidates = eventContent.getAsJsonArray("candidates");
                     addCandidates(candidates);
                 } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(eventType)) {
-                    onCallHangup(event, IMXCall.END_CALL_REASON_PEER_HANG_UP);
+                    mUIThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            terminate(IMXCall.END_CALL_REASON_PEER_HANG_UP);
+                        }
+                    });
                 }
 
             } else { // event from the current member, but sent from another device
@@ -1395,7 +1385,12 @@ public class MXJingleCall extends MXCall {
 
                     case Event.EVENT_TYPE_CALL_HANGUP:
                         // current member answered elsewhere
-                        onCallHangup(event, IMXCall.END_CALL_REASON_PEER_HANG_UP_ELSEWHERE);
+                        mUIThreadHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                terminate(IMXCall.END_CALL_REASON_PEER_HANG_UP_ELSEWHERE);
+                            }
+                        });
                         break;
 
                     default:

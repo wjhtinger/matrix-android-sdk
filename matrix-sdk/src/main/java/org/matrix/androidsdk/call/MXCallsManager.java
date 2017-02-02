@@ -21,7 +21,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Base64;
-import org.matrix.androidsdk.util.Log;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -37,6 +36,7 @@ import org.matrix.androidsdk.rest.model.EventContent;
 import org.matrix.androidsdk.rest.model.MatrixError;
 import org.matrix.androidsdk.rest.model.RoomMember;
 import org.matrix.androidsdk.util.JsonUtils;
+import org.matrix.androidsdk.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -442,16 +442,11 @@ public class MXCallsManager {
                         } else if (Event.EVENT_TYPE_CALL_HANGUP.equals(event.getType())) {
                             final IMXCall call = getCallWithCallId(callId);
                             if (null != call) {
-                                // trigger call events only if the call is active
-                                final boolean isActiveCall = !IMXCall.CALL_STATE_CREATED.equals(call.getCallState());
-
                                 if (null == call.getRoom()) {
                                     call.setRooms(room, room);
                                 }
 
-                                if (isActiveCall) {
-                                    call.handleCallEvent(event);
-                                }
+                                call.handleCallEvent(event);
 
                                 synchronized (this) {
                                     mCallsByCallId.remove(callId);
