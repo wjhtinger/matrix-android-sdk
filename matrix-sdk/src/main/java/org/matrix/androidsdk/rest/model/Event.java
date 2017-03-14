@@ -28,6 +28,10 @@ import org.matrix.androidsdk.crypto.MXCryptoError;
 import org.matrix.androidsdk.db.MXMediasCache;
 import org.matrix.androidsdk.util.JsonUtils;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -42,7 +46,7 @@ import java.util.TimeZone;
 /**
  * Generic event class with all possible fields for events.
  */
-public class Event implements java.io.Serializable {
+public class Event implements Externalizable {
 
     private static final String LOG_TAG = "Event";
     private static final long serialVersionUID = -1431845331022808337L;
@@ -321,9 +325,9 @@ public class Event implements java.io.Serializable {
      */
     public JsonElement getContent() {
         if (null != mClearEvent) {
-            return mClearEvent.content;
+            return mClearEvent.getWireContent();
         } else {
-            return content;
+            return getWireContent();
         }
     }
 
@@ -331,6 +335,7 @@ public class Event implements java.io.Serializable {
      * @return the wired event content
      */
     public JsonElement getWireContent() {
+        finalizeDeserialization();
         return content;
     }
 
@@ -350,6 +355,8 @@ public class Event implements java.io.Serializable {
      * @return the prev_content casted as JsonObject.
      */
     public JsonObject getPrevContentAsJsonObject() {
+        finalizeDeserialization();
+
         if ((null != unsigned) && (null != unsigned.prev_content)) {
             // avoid getting two value for the same thing
             if (null == prev_content) {
@@ -513,6 +520,8 @@ public class Event implements java.io.Serializable {
      * @return the copy
      */
     public Event deepCopy() {
+        finalizeDeserialization();
+
         Event copy = new Event();
         copy.type = type;
         copy.content = content;
@@ -528,6 +537,7 @@ public class Event implements java.io.Serializable {
 
         copy.stateKey = stateKey;
         copy.prev_content = prev_content;
+        copy.prev_content_as_string = prev_content_as_string;
 
         copy.unsigned = unsigned;
         copy.invite_room_state = invite_room_state;
@@ -682,17 +692,17 @@ public class Event implements java.io.Serializable {
 
         text += "  \"content\" {\n";
 
-        if (null != content) {
-            if (content.isJsonArray()) {
-                for (JsonElement e : content.getAsJsonArray()) {
+        if (null != getWireContent()) {
+            if (getWireContent().isJsonArray()) {
+                for (JsonElement e : getWireContent().getAsJsonArray()) {
                     text += "   " + e.toString() + "\n,";
                 }
-            } else if (content.isJsonObject()) {
-                for (Map.Entry<String, JsonElement> e : content.getAsJsonObject().entrySet()) {
+            } else if (getWireContent().isJsonObject()) {
+                for (Map.Entry<String, JsonElement> e : getWireContent().getAsJsonObject().entrySet()) {
                     text += "    \"" + e.getKey() + ": " + e.getValue().toString() + ",\n";
                 }
             } else {
-                text += content.toString();
+                text += getWireContent().toString();
             }
         }
 
@@ -737,10 +747,178 @@ public class Event implements java.io.Serializable {
         return text;
     }
 
+    @Override
+    public void readExternal(ObjectInput input) throws IOException, ClassNotFoundException {
+        if (input.readBoolean()) {
+            type = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            contentAsString = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            prev_content_as_string = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            eventId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            roomId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            userId = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            sender = input.readUTF();
+        }
+
+        originServerTs = input.readLong();
+
+        if (input.readBoolean()) {
+            age = input.readLong();
+        }
+
+        if (input.readBoolean()) {
+            stateKey = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            unsigned = (UnsignedData)input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            redacts = input.readUTF();
+        }
+
+        if (input.readBoolean()) {
+            invite_room_state = (List<Event>) input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            unsentException = (Exception) input.readObject();
+        }
+
+        if (input.readBoolean()) {
+            unsentMatrixError = (MatrixError)input.readObject();
+        }
+
+        mSentState = (SentState) input.readObject();
+
+        if (input.readBoolean()) {
+            mToken = input.readUTF();
+        }
+
+        mIsInternalPaginationToken = input.readBoolean();
+
+        if (input.readBoolean()) {
+            mMatrixId = input.readUTF();
+        }
+
+        mTimeZoneRawOffset = input.readLong();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput output) throws IOException {
+        prepareSerialization();
+
+        output.writeBoolean(null != type);
+        if (null != type) {
+            output.writeUTF(type);
+        }
+
+        output.writeBoolean(null != contentAsString);
+        if (null != contentAsString) {
+            output.writeUTF(contentAsString);
+        }
+
+        output.writeBoolean(null != prev_content_as_string);
+        if (null != prev_content_as_string) {
+            output.writeUTF(prev_content_as_string);
+        }
+
+        output.writeBoolean(null != eventId);
+        if (null != eventId) {
+            output.writeUTF(eventId);
+        }
+
+        output.writeBoolean(null != roomId);
+        if (null != roomId) {
+            output.writeUTF(roomId);
+        }
+
+        output.writeBoolean(null != userId);
+        if (null != userId) {
+            output.writeUTF(userId);
+        }
+
+        output.writeBoolean(null != sender);
+        if (null != sender) {
+            output.writeUTF(sender);
+        }
+
+        output.writeLong(originServerTs);
+
+        output.writeBoolean(null != age);
+        if (null != age) {
+            output.writeLong(age);
+        }
+
+        output.writeBoolean(null != stateKey);
+        if (null != stateKey) {
+            output.writeUTF(stateKey);
+        }
+
+        output.writeBoolean(null != unsigned);
+        if (null != unsigned) {
+            output.writeObject(unsigned);
+        }
+
+        output.writeBoolean(null != redacts);
+        if (null != redacts) {
+            output.writeUTF(redacts);
+        }
+
+        output.writeBoolean(null != invite_room_state);
+        if (null != invite_room_state) {
+            output.writeObject(invite_room_state);
+        }
+
+        output.writeBoolean(null != unsentException);
+        if (null != unsentException) {
+            output.writeObject(unsentException);
+        }
+
+        output.writeBoolean(null != unsentMatrixError);
+        if (null != unsentMatrixError) {
+            output.writeObject(unsentMatrixError);
+        }
+
+        output.writeObject(mSentState);
+
+        output.writeBoolean(null != mToken);
+        if (null != mToken) {
+            output.writeUTF(mToken);
+        }
+
+        output.writeBoolean(mIsInternalPaginationToken);
+
+        output.writeBoolean(null != mMatrixId);
+        if (null != mMatrixId) {
+            output.writeUTF(mMatrixId);
+        }
+
+        output.writeLong(mTimeZoneRawOffset);
+    }
+
     /**
      * Init some internal fields to serialize the event.
      */
-    public void prepareSerialization() {
+    private void prepareSerialization() {
         if ((null != content) && (null == contentAsString)) {
             contentAsString = content.toString();
         }
@@ -757,12 +935,13 @@ public class Event implements java.io.Serializable {
     /**
      * Deserialize the event.
      */
-    public void finalizeDeserialization() {
+    private void finalizeDeserialization() {
         if ((null != contentAsString) && (null == content)) {
             try {
                 content = new JsonParser().parse(contentAsString).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : contentAsString deserialization " + e.getMessage());
+                contentAsString = null;
             }
         }
 
@@ -770,7 +949,8 @@ public class Event implements java.io.Serializable {
             try {
                 prev_content = new JsonParser().parse(prev_content_as_string).getAsJsonObject();
             } catch (Exception e) {
-                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getLocalizedMessage());
+                Log.e(LOG_TAG, "finalizeDeserialization : prev_content_as_string deserialization " + e.getMessage());
+                prev_content_as_string = null;
             }
         }
     }
