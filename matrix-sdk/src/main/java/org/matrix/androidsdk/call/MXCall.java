@@ -538,6 +538,18 @@ public class MXCall implements IMXCall {
         }
     }
 
+    protected void dispatchOnData(String data) {
+        List<MXCallListener> listeners = getCallListeners();
+
+        for (MXCallListener listener : listeners) {
+            try {
+                listener.onData(data);
+            } catch (Exception e) {
+                Log.e(LOG_TAG,"## dispatchOnData(): Exception Msg="+e.getMessage());
+            }
+        }
+    }
+
     /**
      * Send the next pending events
      */
@@ -681,4 +693,8 @@ public class MXCall implements IMXCall {
         Log.w(LOG_TAG,"## muteVideoRecording(): not implemented - default value = false");
         return false;
     }
-}
+
+    public void sendData(String data) {
+    }
+
+    }

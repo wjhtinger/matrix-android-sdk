@@ -53,6 +53,7 @@ import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 
 import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -115,6 +116,8 @@ public class MXJingleCall extends MXCall {
     private int mCameraInUse = CAMERA_TYPE_UNDEFINED;
 
     private boolean mIsAnswered = false;
+
+    private DataChannel dc;
 
     /**
      * @return true if this stack can perform calls.
@@ -545,7 +548,7 @@ public class MXJingleCall extends MXCall {
 
         // define constraints
         MediaConstraints pcConstraints = new MediaConstraints();
-        pcConstraints.optional.add(new MediaConstraints.KeyValuePair("RtpDataChannels", "true"));
+        //pcConstraints.optional.add(new MediaConstraints.KeyValuePair("RtpDataChannels", "true"));
 
         // start connecting to the other peer by creating the peer connection
         mPeerConnection = mPeerConnectionFactory.createPeerConnection(
@@ -719,6 +722,12 @@ public class MXJingleCall extends MXCall {
                     @Override
                     public void onDataChannel(DataChannel dataChannel) {
                         Log.d(LOG_TAG, "## mPeerConnection creation: onDataChannel " + dataChannel);
+                        if (null != mPeerConnection) {
+                            dc = dataChannel;
+                            dc.registerObserver(new DcObserver());
+                        } else {
+                            Log.d(LOG_TAG, "Direct connection opened, but no object to handle it!");
+                        }
                     }
 
                     @Override
@@ -728,6 +737,12 @@ public class MXJingleCall extends MXCall {
                 });
 
         // send our local video and audio stream to make it seen by the other part
+
+        DataChannel.Init dcInit = new DataChannel.Init();
+        dcInit.id = 1;
+        dc = mPeerConnection.createDataChannel("1", dcInit);
+        dc.registerObserver(new DcObserver());
+
         mPeerConnection.addStream(mLocalMediaStream);
 
         MediaConstraints constraints = new MediaConstraints();
@@ -1730,4 +1745,35 @@ public class MXJingleCall extends MXCall {
         }
     }
 
-}
+    private class DcObserver implements DataChannel.Observer {
+        @Override
+        public void onBufferedAmountChange(long l) {
+            Log.d(LOG_TAG, "DataChannel.Observer onBufferedAmountChange");
+        }
+
+        @Override
+        public void onStateChange() {
+            Log.d(LOG_TAG, "DataChannel.Observer Data channel state change");
+        }
+
+        @Override
+        public void onMessage(DataChannel.Buffer buffer) {
+            ByteBuffer data = buffer.data;
+            byte[] bytes = new byte[data.remaining()];
+            data.get(bytes);
+            final String str = new String(bytes);
+            dispatchOnData(str);
+            Log.d(LOG_TAG, "DataChannel.Observer received message:" + str);
+        }
+    }
+
+    public void sendData(String data) {
+        byte[] dataBytes = data.getBytes();
+
+        ByteBuffer buf = ByteBuffer.wrap(dataBytes);
+        DataChannel.Buffer dcBuf = new DataChannel.Buffer(buf, true);
+        dc.send(dcBuf);
+        Log.d(LOG_TAG, "Successfully sent buffer via webrtc:" + data);
+    }
+
+    }

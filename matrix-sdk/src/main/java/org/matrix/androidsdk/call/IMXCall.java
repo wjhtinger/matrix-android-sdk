@@ -172,6 +172,8 @@ public interface IMXCall {
          * @param height the new height (non scaled size)
          */
         void onPreviewSizeChanged(int width, int height);
+
+        void onData(String str);
     }
 
     // creator
@@ -390,5 +392,6 @@ public interface IMXCall {
      */
     boolean isVideoRecordingMuted();
 
+    public void sendData(String data) ;
 
-}
+    }
