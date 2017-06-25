@@ -133,47 +133,49 @@ public interface IMXCall {
         }
     }
 
-    interface MXCallListener {
+    abstract class MXCallListener {
         /**
          * Called when the call state change
          */
-        void onStateDidChange(String state);
+        public abstract void onStateDidChange(String state);
 
         /**
          * Called when the call fails
          */
-        void onCallError(String error);
+        public abstract void onCallError(String error);
 
         /**
          * The callview must be added to a layout
          * @param callView the callview
          */
-        void onViewLoading(View callView);
+        public abstract void onViewLoading(View callView);
 
         /**
          * Warn when the call view is ready
          */
-        void onViewReady();
+        public abstract void onViewReady();
 
         /**
          * The call was answered on another device
          */
-        void onCallAnsweredElsewhere();
+        public abstract void onCallAnsweredElsewhere();
 
         /**
          * Warn that the call is ended
          * @param aReasonId the reason of the call ending
          */
-        void onCallEnd(final int aReasonId);
+        public abstract void onCallEnd(final int aReasonId);
 
         /**
          * The video preview size has been updated.
          * @param width the new width (non scaled size)
          * @param height the new height (non scaled size)
          */
-        void onPreviewSizeChanged(int width, int height);
+        public abstract void onPreviewSizeChanged(int width, int height);
 
-        void onData(String str);
+        public void onData(String str){
+
+        }
     }
 
     // creator

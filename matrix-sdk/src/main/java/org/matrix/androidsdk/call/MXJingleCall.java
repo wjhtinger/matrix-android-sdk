@@ -67,7 +67,7 @@ public class MXJingleCall extends MXCall {
 
     private static final String MIN_VIDEO_WIDTH_CONSTRAINT = "minWidth";
 
-    private static final int MIN_VIDEO_WIDTH = 640;
+    private static final int MIN_VIDEO_WIDTH = 1024;
     private static final int CAMERA_TYPE_FRONT = 1;
     private static final int CAMERA_TYPE_REAR = 2;
     private static final int CAMERA_TYPE_UNDEFINED = -1;
