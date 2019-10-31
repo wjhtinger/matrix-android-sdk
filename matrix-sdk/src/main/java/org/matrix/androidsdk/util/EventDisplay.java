@@ -82,8 +82,13 @@ public class EventDisplay {
         if (null != roomState) {
             return roomState.getMemberName(userId);
         } else {
-            return userId;
-        }
+            int idx = userId.indexOf(":windsing");
+            String name = userId;
+            if(idx > 0) {
+                name = userId.substring(0, idx);
+            }
+
+            return name;        }
     }
 
     /**

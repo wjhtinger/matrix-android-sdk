@@ -935,7 +935,13 @@ public class RoomState implements Externalizable {
 
         if (null == displayName) {
             // By default, use the user ID
-            displayName = userId;
+            int idx = userId.indexOf(":windsing");
+            if(idx > 0) {
+                displayName = userId.substring(0, idx);
+            }else{
+                displayName = userId;
+            }
+
         }
 
         mMemberDisplayNameByUserId.put(userId, displayName);

@@ -920,7 +920,13 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
         if (null != roomState) {
             return roomState.getMemberName(userId);
         } else {
-            return userId;
+            int idx = userId.indexOf(":windsing");
+            String name = userId;
+            if(idx > 0) {
+                name = userId.substring(0, idx);
+            }
+
+            return name;
         }
     }
 
@@ -2347,7 +2353,7 @@ public abstract class MessagesAdapter extends ArrayAdapter<MessageRow> {
             return convertView;
         }
 
-        fileTextView.setPaintFlags(fileTextView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        fileTextView.setPaintFlags(fileTextView.getPaintFlags());
         fileTextView.setText("\n" + fileMessage.body + "\n");
 
         // display the right message type icon.
